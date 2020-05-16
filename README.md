@@ -25,4 +25,4 @@ Refer <http://man7.org/linux/man-pages/man1/diff.1.html> for more
 
 For example,
 
-`diff hi.txt hello.txt`
+`./diff hi.txt hello.txt`
