@@ -9,7 +9,6 @@
 
 #include "edit.h"
 
-// First I will implement using strings
 
 int main(int argc, char *argv[]) {
 
