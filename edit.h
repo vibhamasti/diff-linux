@@ -17,7 +17,6 @@ enum action {
     NO_OP
 };
 
-
 // Compute the edit path from file1 to file2
 int edit_path(char*, char*);
 
