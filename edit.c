@@ -276,98 +276,149 @@ int LevenshteinDistance(int *f1_map, int *f2_map, int flines_1, int flines_2, in
     return *(min_dist + flines_1*flines_2 - 1);
 }
 
-// Find the edit path from file 1 to file 2
+/* Find the edit path from file 1 to file 2 */
 int edit_path(char *fname_1, char *fname_2) {
-    printf("%s\n", fname_1);
-    printf("%s\n", fname_2);
-
     // Total number of lines in each file
     int flines_1 = line_count(fname_1);
     int flines_2 = line_count(fname_2);
 
-    // If files could noy open properly
+    // If files could not open properly, exit
     if (flines_1 < 0 || flines_2 < 0) {
         printf("Error in opening files.\n");
         return -1;
     }
 
-    // If the number of lines exceeds MAX_LINES
+    // If the number of lines exceeds MAX_LINES, exit
     if (flines_1 > MAX_LINES || flines_2 > MAX_LINES) {
         printf("Files too big.\n");
         return -1;
     }
 
+    // Open the two files in read mode
     FILE *f1 = fopen(fname_1, "r");
     FILE *f2 = fopen(fname_2, "r");
 
+    /* 
+    Maps each line in the file to a unique index
+    For instance
+    0 -> line a
+    1 -> line b
+    2 -> line c
+    and so forth (across both files) 
+    */
     char map[2*MAX_LINES][MAX_CHARS];
 
-    // Maps the lines in each file to an overall 
-    // unique index in map
+    /* 
+    Maps the line number in each file to the
+    unique index in map
+    0 -> 2 (global unique index 2) -> line c
+    1 -> 0 (global unique index 0) -> line a
+    2 -> 0 (global unique index 0) -> line a 
+    */
     int f1_map[MAX_LINES];
     int f2_map[MAX_LINES];
 
-    // Store total number of unique lines    
+    /* Store total number of unique lines (length of map) */  
     int unique_lines = make_map(f1, f2, f1_map, f2_map, map);
 
-    // Make minimum edit distance matrix
-    printf("\n");
+    /* 
+    Initialise a matrix for minimum edit distances 
+    (also called Levenshtein Distance)
+    
+    eg: for the words "apple" and "pear", the matrix
+        to caluculate edit distance awould look like
 
-    // Initialise a matrix for minimum edit distances
+          _ P E A R
+        _ 0 1 2 3 4
+        A 1 1 2 2 3
+        P 2 1 2 3 3
+        P 3 2 2 3 4
+        L 4 3 3 3 4
+        E 5 4 3 4 4
+
+    The minimum edit distance is the bottom-right value (4)
+
+    This means a minimum of 4 steps are required to change
+    teh word "apple" to the word "pear"
+
+    Here the same process is mimicked but with the unique line 
+    indices instead of letters in the alphabet
+
+    The values get stored ina dynamic array made to work like
+    a matrix
+    */
     int *min_dist = (int *) malloc(flines_1 * flines_2 * sizeof(int));
 
-    // Initialise matrix with 0s
+    /* Initialise matrix with 0s */
     for (int i=0; i<flines_1; ++i) {
         for (int j=0; j<flines_2; ++j) {
             *(min_dist + i*flines_2 + j) = 0; 
         }
-        
     }
 
-    // Compute Levenshtein Distance
+    /* 
+    Compute Levenshtein Distance and store the number of steps 
+    required in the variable steps
+    */
     int steps = LevenshteinDistance(f1_map, f2_map, flines_1, flines_2, min_dist);
 
-    //printf("%d\n", steps);
-
-    // Printing
-    //print_dp(flines_1, flines_2, f1_map, f2_map, min_dist);
-
+    /* 
+    An array that stores all the edit opeartions to change
+    file 1 to file 2 (the steps)
+    */
     int *operations = (int *) malloc(steps * sizeof(int));
 
+    // Set all operations to NO_OP (default)
     for (int i=0; i<steps; ++i) {
-        operations[i] = 0;
+        operations[i] = NO_OP;
     }
 
+    /*
+    Here, edit path is reconstruced based on the matrix
+    of edit distances and adjancent actions
+    */
     steps = reconstruct(min_dist, flines_1, flines_2, operations, steps);
 
+    // Statring coordinate
     int start[] = {0, 0};
 
     // Go through the steps in reverse order
     for (int i=steps-1; i>=0; --i) {
+
+        // If the action was an insertion of a line
         if (operations[i] == INSERTION) {
             ++start[1];
+            // Print line numbers and 'a' for addition
             printf("%da%d\n", start[0]+1, start[1]+1);
-
+            // Followed by the new line to insert from file 2
             printf("> %s\n", map[f2_map[start[1]]]);
 
         }
+
+        // If the action was an deletion of a line
         else if (operations[i] == DELETION) {
             ++start[0];
+            // Print line numbers and 'd' for deletion
             printf("%dd%d\n", start[0]+1, start[1]+1);
-
+            // Followed by the new line to delete from file 1
             printf("< %s\n", map[f1_map[start[0]]]);
         }
 
+        // If the action was an substitution of a line
         else if (operations[i] == SUBSTITUTION) {
             ++start[0];
             ++start[1];
+            // Print line numbers and 'c' for change
             printf("%dc%d\n", start[0]+1, start[1]+1);
-
+            // Followed by the line from file 1 to be 
+            // changed to line from file 2
             printf("< %s\n", map[f1_map[start[0]]]);
             printf("---\n");
             printf("> %s\n", map[f2_map[start[1]]]);
 
         }
+
+        // If the action was empty, do nothing
         else if (operations[i] == EMPTY) {
             ++start[0];
             ++start[1];
@@ -376,24 +427,11 @@ int edit_path(char *fname_1, char *fname_2) {
     } 
     printf("\n");
 
-
-
-    // EMPTY = 0
-    // INSERTION = 1
-    // SUBSTITUTION = 2
-    // DELETION = 3
-
-    //printf("\n%d\n", min_3(2, 1, 3));
-
-    /*printf("Unique lines: %d\n", unique_lines);
-
-    for (int j=0; j<unique_lines; ++j) {
-        printf("%s\n", map[j]);
-    }*/
-
+    // Deallocate the memory
     free(operations);
     free(min_dist);
 
+    // Close the files
     fclose(f1);
     fclose(f2);
 
