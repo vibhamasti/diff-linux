@@ -1,6 +1,6 @@
 # README
 
-This is a programme to mimic the working of the Unix command `diff` that compares files line-by-line
+This is a programme to mimic the working of the Unix command `diff` that compares files line-by-line (implementation in C)
 
 Refer <http://man7.org/linux/man-pages/man1/diff.1.html> for more
 
